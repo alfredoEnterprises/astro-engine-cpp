@@ -1,0 +1,19 @@
+# Build
+build/
+cmake-build-*/
+CMakeCache.txt
+CMakeFiles/
+compile_commands.json
+*.o
+*.a
+*.dylib
+*.so
+*.exe
+
+# Third-party (Swiss Ephemeris lives here locally; not versioned)
+external/
+
+# OS / tooling noise
+.DS_Store
+*.swp
+*~
