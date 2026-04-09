@@ -30,6 +30,7 @@ add_library(astro_engine STATIC
     engine/metadata.c
     engine/bodies.c
     engine/houses.c
+    engine/points.c
 )
 
 target_include_directories(astro_engine PUBLIC engine external/swisseph)

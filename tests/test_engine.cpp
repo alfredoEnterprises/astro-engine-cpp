@@ -7,6 +7,7 @@ extern "C" {
 #include "bodies.h"
 #include "houses.h"
 #include "swephexp.h"
+#include "points.h"
 }
 
 int main() {
@@ -20,15 +21,19 @@ int main() {
     // Input
     // ----------------------------------------
     AeInput in{};
-    in.year = 1984;
+    in.year = 1983;
     in.month = 3;
-    in.day = 12;
-    in.hour = 4;
-    in.minute = 0;
+    in.day = 28;
+
+    in.hour = 8;
+    in.minute = 45;
     in.second = 0;
-    in.timezone = 0.0;
-    in.lat = 40.7128;
-    in.lon = -74.0060;
+
+    in.timezone = -6.0;      // CST (UTC-6)
+
+    in.lat = 19.4333;        // 19°26' N
+    in.lon = -99.1333;       // 99°08' W
+
     in.house_system = 'P';
 
     char err[256];
@@ -159,6 +164,48 @@ AE_BODY_CHIRON].retrograde << ")\n";
     AeHouseCuspsCore cusps{};
 
     int rc3 = ae_compute_houses(&meta, AE_HOUSE_PLACIDUS, &angles, &cusps, err, sizeof(err));
+    // ------------------------------------------------------------
+// COPY ANGLES INTO CHART (ASC, MC, Vertex)
+// ------------------------------------------------------------
+chart.bodies[AE_BODY_ASC].lon    = angles.asc.longitude;
+chart.bodies[AE_BODY_MC].lon     = angles.mc.longitude;
+
+// Vertex comes from houses engine
+ae_copy_vertex(&angles, &chart.bodies[AE_BODY_VERTEX]);
+
+// ------------------------------------------------------------
+// COMPUTE PART OF FORTUNE (DAY/NIGHT FORMULA)
+// ------------------------------------------------------------
+ae_compute_fortune(
+    &angles,
+    &chart.bodies[AE_BODY_SUN],
+    &chart.bodies[AE_BODY_MOON],
+    &chart.bodies[AE_BODY_FORTUNE]
+);
+
+    // Assign houses to each body using the computed cusps
+for (int i = 0; i < AE_BODY_COUNT; ++i) {
+    chart.bodies[i].house = ae_house_of(chart.bodies[i].lon, &cusps);
+}
+
+const char* BODY_NAMES[] = {
+    "Sun", "Moon", "Mercury", "Venus", "Mars",
+    "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto",
+    "True Node", "Lilith", "Chiron", "Fortune", "Vertex",
+    "ASC", "MC"
+};
+
+std::cout << "\n=== BODY HOUSE PLACEMENTS ===\n";
+for (int i = 0; i < AE_BODY_COUNT; ++i) {
+    std::cout << BODY_NAMES[i] << ": House "
+              << chart.bodies[i].house << "\n";
+}
+
+
+// Optional explicit overrides for angles if you later store them as bodies
+ chart.bodies[AE_BODY_ASC].house = 1;
+ chart.bodies[AE_BODY_MC].house  = 10;
+
 
     std::cout << "=== TEST: HOUSES (PLACIDUS) ===\n";
     std::cout << "ASC: " << angles.asc.longitude << "\n";

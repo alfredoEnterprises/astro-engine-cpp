@@ -97,13 +97,6 @@ int ae_compute_core_bodies(
         }
 
         int rc = ae_compute_body(jd_ut, id, &chart->bodies[id], err_msg, err_msg_size);
-        //printf("DEBUG: ae_compute_body running from THIS FILE\n");
-
-        for (int i = 0; i < AE_BODY_COUNT; i++) {
-            chart->bodies[i].house = ae_house_of(chart->bodies[i].lon, &chart->houses);
-        }
-        
-
         if (rc != 0) {
             return rc;
         }
@@ -111,3 +104,4 @@ int ae_compute_core_bodies(
 
     return 0;
 }
+
