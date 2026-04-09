@@ -17,3 +17,6 @@ external/
 .DS_Store
 *.swp
 *~
+
+# Local CMake installers (large; not part of the project)
+cmake-*.sh

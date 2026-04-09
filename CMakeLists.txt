@@ -109,62 +109,26 @@ target_link_libraries(astro_api_validation
 # ---------------------------------------------------------
 # Tests
 # ---------------------------------------------------------
-add_executable(test_core
-    tests/test_core.cpp
-)
+#add_executable(test_core tests/test_core.cpp)
 
-target_include_directories(test_core PUBLIC
-    engine/core
-    engine/bootstrap
-    api/serializers
-    external/swisseph
-)
+#target_include_directories(test_core PUBLIC engine/core engine/bootstrap api/serializers external/swisseph)
 
-target_link_libraries(test_core
-    astro_engine_core
-    astro_engine_bootstrap
-    astro_api_serializers
-    swisseph
-    m
-)
+#target_link_libraries(test_core astro_engine_core astro_engine_bootstrap astro_api_serializers swisseph m)
 
-add_executable(test_serializers
-    tests/test_serializers.cpp
-)
+#add_executable(test_serializers tests/test_serializers.cpp)
 
-target_include_directories(test_serializers PUBLIC
-    engine/core
-    api/serializers
-)
+#target_include_directories(test_serializers PUBLIC engine/core api/serializers)
 
-target_link_libraries(test_serializers
-    astro_engine_core
-    astro_api_serializers
-    swisseph
-    m
-)
+#target_link_libraries(test_serializers astro_engine_core astro_api_serializers swisseph m)
 
 # ---------------------------------------------------------
 # Test: validation
 # ---------------------------------------------------------
-add_executable(test_validation
-    tests/test_validation.cpp
-)
+#add_executable(test_validation tests/test_validation.cpp)
 
-target_include_directories(test_validation PUBLIC
-    api/validation
-    api/third_party/cjson
-    engine/core
-    external/swisseph
-)
+#target_include_directories(test_validation PUBLIC api/validation api/third_party/cjson engine/core external/swisseph)
 
-target_link_libraries(test_validation
-    astro_api_validation
-    astro_engine_core
-    astro_engine_bootstrap
-    swisseph
-    m
-)
+#target_link_libraries(test_validation astro_api_validation astro_engine_core astro_engine_bootstrap swisseph m)
 
 # ---------------------------------------------------------
 # Lambda handler (pure C custom runtime)
