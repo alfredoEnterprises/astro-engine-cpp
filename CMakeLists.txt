@@ -31,6 +31,8 @@ add_library(astro_engine STATIC
     engine/bodies.c
     engine/houses.c
     engine/points.c
+    engine/aspect_rules.c
+    engine/aspects.c
 )
 
 target_include_directories(astro_engine PUBLIC engine external/swisseph)

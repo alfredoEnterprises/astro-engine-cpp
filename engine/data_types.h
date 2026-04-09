@@ -1,5 +1,7 @@
 #ifndef AE_DATA_TYPES_H
 #define AE_DATA_TYPES_H
+#define AE_MAX_ASPECTS 512
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -27,6 +29,8 @@ typedef enum {
     AE_BODY_VERTEX,
     AE_BODY_ASC,
     AE_BODY_MC,
+    AE_BODY_DSC,   // ← ADD THIS
+    AE_BODY_IC, 
     AE_BODY_COUNT
 } AeBodyId;
 
@@ -44,18 +48,20 @@ typedef struct {
 } AeHouses;
 
 typedef enum {
-    AE_ASPECT_CONJ = 0,
-    AE_ASPECT_OPP,
-    AE_ASPECT_TRINE,
-    AE_ASPECT_SQUARE,
-    AE_ASPECT_SEXTILE,
-    AE_ASPECT_NONE
+    AE_ASPECT_CONJUNCTION = 0,
+    AE_ASPECT_OPPOSITION  = 1,
+    AE_ASPECT_TRINE       = 2,
+    AE_ASPECT_SQUARE      = 3,
+    AE_ASPECT_SEXTILE     = 4,
+    AE_ASPECT_NONE        = 5
 } AeAspectType;
+
 
 typedef struct {
     AeBodyId a;
     AeBodyId b;
     AeAspectType type;
+    double delta; 
     double orb;
     int    applying;
 } AeAspect;
@@ -65,9 +71,10 @@ typedef struct {
     double lst;
     AeBodyState bodies[AE_BODY_COUNT];
     AeHouses    houses;
-    AeAspect   *aspects;
+    AeAspect    aspects[AE_MAX_ASPECTS];   // ← FIXED ARRAY
     int         aspect_count;
 } AeChartCore;
+
 
 typedef struct {
     int year, month, day;

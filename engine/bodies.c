@@ -82,6 +82,9 @@ int ae_compute_core_bodies(
     char *err_msg,
     int err_msg_size
 ) {
+    // Ensure Swiss Ephemeris knows where the ephemeris files are
+    swe_set_ephe_path("/Users/alfredo/Documents/projects/astro-engine-cpp/external/swisseph/ephe");
+
     if (!chart) {
         ae_set_error(err_msg, err_msg_size, "NULL AeChartCore");
         return -1;
@@ -90,9 +93,13 @@ int ae_compute_core_bodies(
     for (int i = 0; i < AE_BODY_COUNT; ++i) {
         AeBodyId id = (AeBodyId)i;
 
-        // Skip angles and derived points for now; they’ll be set by houses/points modules
-        if (id == AE_BODY_ASC || id == AE_BODY_MC ||
-            id == AE_BODY_FORTUNE || id == AE_BODY_VERTEX) {
+        // Skip angles and derived points; they’re set by houses/points modules
+        if (id == AE_BODY_ASC  ||
+            id == AE_BODY_MC   ||
+            id == AE_BODY_DSC  ||
+            id == AE_BODY_IC   ||
+            id == AE_BODY_FORTUNE ||
+            id == AE_BODY_VERTEX) {
             continue;
         }
 
@@ -104,4 +111,5 @@ int ae_compute_core_bodies(
 
     return 0;
 }
+
 

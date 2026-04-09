@@ -1,224 +1,231 @@
 #include <iostream>
+#include <iomanip>
+#include <cmath>
+#include <cstring>
+#include <algorithm>
 
-extern "C" {
-#include "engine.h"
 #include "data_types.h"
 #include "metadata.h"
 #include "bodies.h"
 #include "houses.h"
-#include "swephexp.h"
 #include "points.h"
+#include "aspects.h"
+#include "aspect_rules.h"
+
+static double norm180(double x)
+{
+    while (x > 180.0) x -= 360.0;
+    while (x < -180.0) x += 360.0;
+    return x;
 }
 
-int main() {
-    // ----------------------------------------
-    // Swiss Ephemeris init
-    // ----------------------------------------
-    ae_init_swiss("/Users/alfredo/Documents/projects/astro-engine-cpp/external/swisseph/ephe");
-    std::cout << "DEBUG: after ae_init_swiss\n";
+static const char* body_names[] = {
+    "Sun","Moon","Mercury","Venus","Mars",
+    "Jupiter","Saturn","Uranus","Neptune","Pluto",
+    "Node","Lilith","Chiron","Fortune","Vertex",
+    "ASC","MC","DSC","IC"
+};
 
-    // ----------------------------------------
-    // Input
-    // ----------------------------------------
-    AeInput in{};
-    in.year = 1983;
+static const char* aspect_names[] = {
+    "Conjunction",
+    "Opposition",
+    "Trine",
+    "Square",
+    "Sextile",
+    "None"
+};
+
+int main()
+{
+    char err[256];
+
+    // -----------------------------
+    // INPUT
+    // -----------------------------
+    AeInput in;
+    ae_init_input(&in);
+
+   /* in.year = 1983;
     in.month = 3;
     in.day = 28;
-
     in.hour = 8;
     in.minute = 45;
     in.second = 0;
-
-    in.timezone = -6.0;      // CST (UTC-6)
-
-    in.lat = 19.4333;        // 19°26' N
-    in.lon = -99.1333;       // 99°08' W
-
+    in.timezone = -6.0;
+    in.lat = 19.433333;
+    in.lon = -99.133333;
+    in.house_system = 'P';*/
+    in.year = 1999;
+    in.month = 3;
+    in.day = 5;
+    in.hour = 16;
+    in.minute = 3;
+    in.second = 0;
+    in.timezone = +9.0;
+    in.lat = 35.35;        // 35°21' N
+    in.lon = 137.183333;   // 137°11' E
     in.house_system = 'P';
 
-    char err[256];
 
-    // ----------------------------------------
-    // METADATA TEST
-    // ----------------------------------------
+    // -----------------------------
+    // CHART CORE
+    // -----------------------------
+    AeChartCore chart;
+    ae_init_chart_core(&chart); // should memset/zero everything
+
+    // -----------------------------
+    // METADATA
+    // -----------------------------
     double jd_ut = 0.0;
     double lst_deg = 0.0;
 
-    int rc1 = ae_compute_metadata(&in, &jd_ut, &lst_deg, err, sizeof(err));
-    std::cout << "=== TEST: METADATA ===\n";
-    std::cout << "JD(UT): " << jd_ut << "\n";
-    std::cout << "LST (deg): " << lst_deg << "\n";
+    if (ae_compute_metadata(&in, &jd_ut, &lst_deg, err, sizeof(err)) != 0) {
+        std::cerr << "Metadata error: " << err << "\n";
+        return 1;
+    }
 
-    // ----------------------------------------
-    // BODIES TEST
-    // ----------------------------------------
-    AeChartCore chart{};
-    ae_init_chart_core(&chart);
+    chart.jd_ut = jd_ut;
+    chart.lst   = lst_deg;
 
-    int rc2 = ae_compute_core_bodies(jd_ut, &chart, err, sizeof(err));
-
-    std::cout << "=== TEST: BODIES (ALL CORE MOVING BODIES) ===\n";
-    std::cout << "Sun: " << chart.bodies[
-AE_BODY_SUN].lon
-              << "  (speed=" << chart.bodies[
-AE_BODY_SUN].speed_lon
-              << ", retro=" << chart.bodies[
-AE_BODY_SUN].retrograde << ")\n";
-
-    std::cout << "Moon: " << chart.bodies[
-AE_BODY_MOON].lon
-              << "  (speed=" << chart.bodies[
-AE_BODY_MOON].speed_lon
-              << ", retro=" << chart.bodies[
-AE_BODY_MOON].retrograde << ")\n";
-
-    std::cout << "Mercury: " << chart.bodies[
-AE_BODY_MERCURY].lon
-              << "  (speed=" << chart.bodies[
-AE_BODY_MERCURY].speed_lon
-              << ", retro=" << chart.bodies[
-AE_BODY_MERCURY].retrograde << ")\n";
-
-    std::cout << "Venus: " << chart.bodies[
-AE_BODY_VENUS].lon
-              << "  (speed=" << chart.bodies[
-AE_BODY_VENUS].speed_lon
-              << ", retro=" << chart.bodies[
-AE_BODY_VENUS].retrograde << ")\n";
-
-    std::cout << "Mars: " << chart.bodies[
-AE_BODY_MARS].lon
-              << "  (speed=" << chart.bodies[
-AE_BODY_MARS].speed_lon
-              << ", retro=" << chart.bodies[
-AE_BODY_MARS].retrograde << ")\n";
-
-    std::cout << "Jupiter: " << chart.bodies[
-AE_BODY_JUPITER].lon
-              << "  (speed=" << chart.bodies[
-AE_BODY_JUPITER].speed_lon
-              << ", retro=" << chart.bodies[
-AE_BODY_JUPITER].retrograde << ")\n";
-
-    std::cout << "Saturn: " << chart.bodies[
-AE_BODY_SATURN].lon
-              << "  (speed=" << chart.bodies[
-AE_BODY_SATURN].speed_lon
-              << ", retro=" << chart.bodies[
-AE_BODY_SATURN].retrograde << ")\n";
-
-    std::cout << "Uranus: " << chart.bodies[
-AE_BODY_URANUS].lon
-              << "  (speed=" << chart.bodies[
-AE_BODY_URANUS].speed_lon
-              << ", retro=" << chart.bodies[
-AE_BODY_URANUS].retrograde << ")\n";
-
-    std::cout << "Neptune: " << chart.bodies[
-AE_BODY_NEPTUNE].lon
-              << "  (speed=" << chart.bodies[
-AE_BODY_NEPTUNE].speed_lon
-              << ", retro=" << chart.bodies[
-AE_BODY_NEPTUNE].retrograde << ")\n";
-
-    std::cout << "Pluto: " << chart.bodies[
-AE_BODY_PLUTO].lon
-              << "  (speed=" << chart.bodies[
-AE_BODY_PLUTO].speed_lon
-              << ", retro=" << chart.bodies[
-AE_BODY_PLUTO].retrograde << ")\n";
-
-    std::cout << "True Node: " << chart.bodies[
-AE_BODY_NODE].lon
-              << "  (speed=" << chart.bodies[
-AE_BODY_NODE].speed_lon
-              << ", retro=" << chart.bodies[
-AE_BODY_NODE].retrograde << ")\n";
-
-    std::cout << "Lilith (Mean Apogee): " << chart.bodies[
-AE_BODY_LILITH].lon
-              << "  (speed=" << chart.bodies[
-AE_BODY_LILITH].speed_lon
-              << ", retro=" << chart.bodies[
-AE_BODY_LILITH].retrograde << ")\n";
-
-    std::cout << "Chiron: " << chart.bodies[
-AE_BODY_CHIRON].lon
-              << "  (speed=" << chart.bodies[
-AE_BODY_CHIRON].speed_lon
-              << ", retro=" << chart.bodies[
-AE_BODY_CHIRON].retrograde << ")\n";
-
-    // ----------------------------------------
-    // HOUSES TEST
-    // ----------------------------------------
-
-    // Construct metadata struct for houses
-    AeMetadataCore meta{};
-    meta.jd_ut = jd_ut;
+    // Build AeMetadataCore for houses
+    AeMetadataCore meta;
+    meta.jd_ut   = jd_ut;
     meta.lst_deg = lst_deg;
-    meta.lat = in.lat;
-    meta.lon = in.lon;
+    meta.lat     = in.lat;
+    meta.lon     = in.lon;
 
-    AeHouseAnglesCore angles{};
-    AeHouseCuspsCore cusps{};
+    // -----------------------------
+    // BODIES
+    // -----------------------------
+    if (ae_compute_core_bodies(jd_ut, &chart, err, sizeof(err)) != 0) {
+        std::cerr << "Bodies error: " << err << "\n";
+        return 1;
+    }
 
-    int rc3 = ae_compute_houses(&meta, AE_HOUSE_PLACIDUS, &angles, &cusps, err, sizeof(err));
-    // ------------------------------------------------------------
-// COPY ANGLES INTO CHART (ASC, MC, Vertex)
-// ------------------------------------------------------------
-chart.bodies[AE_BODY_ASC].lon    = angles.asc.longitude;
-chart.bodies[AE_BODY_MC].lon     = angles.mc.longitude;
+    // -----------------------------
+    // HOUSES
+    // -----------------------------
+    AeHouseAnglesCore angles;
+    AeHouseCuspsCore cusps;
 
-// Vertex comes from houses engine
-ae_copy_vertex(&angles, &chart.bodies[AE_BODY_VERTEX]);
+    if (ae_compute_houses(&meta, AE_HOUSE_PLACIDUS, &angles, &cusps, err, sizeof(err)) != 0) {
+        std::cerr << "Houses error: " << err << "\n";
+        return 1;
+    }
 
-// ------------------------------------------------------------
-// COMPUTE PART OF FORTUNE (DAY/NIGHT FORMULA)
-// ------------------------------------------------------------
-ae_compute_fortune(
-    &angles,
-    &chart.bodies[AE_BODY_SUN],
-    &chart.bodies[AE_BODY_MOON],
-    &chart.bodies[AE_BODY_FORTUNE]
-);
-
-    // Assign houses to each body using the computed cusps
-for (int i = 0; i < AE_BODY_COUNT; ++i) {
-    chart.bodies[i].house = ae_house_of(chart.bodies[i].lon, &cusps);
-}
-
-const char* BODY_NAMES[] = {
-    "Sun", "Moon", "Mercury", "Venus", "Mars",
-    "Jupiter", "Saturn", "Uranus", "Neptune", "Pluto",
-    "True Node", "Lilith", "Chiron", "Fortune", "Vertex",
-    "ASC", "MC"
-};
-
-std::cout << "\n=== BODY HOUSE PLACEMENTS ===\n";
-for (int i = 0; i < AE_BODY_COUNT; ++i) {
-    std::cout << BODY_NAMES[i] << ": House "
-              << chart.bodies[i].house << "\n";
-}
-
-
-// Optional explicit overrides for angles if you later store them as bodies
- chart.bodies[AE_BODY_ASC].house = 1;
- chart.bodies[AE_BODY_MC].house  = 10;
-
-
-    std::cout << "=== TEST: HOUSES (PLACIDUS) ===\n";
-    std::cout << "ASC: " << angles.asc.longitude << "\n";
-    std::cout << "MC: " << angles.mc.longitude << "\n";
-    std::cout << "DSC: " << angles.dsc.longitude << "\n";
-    std::cout << "IC: " << angles.ic.longitude << "\n";
-    std::cout << "Vertex: " << angles.vertex.longitude << "\n";
-    std::cout << "ARMC: " << angles.armc.longitude << "\n";
-    std::cout << "Obliquity: " << angles.obliquity << "\n";
-
-    std::cout << "--- Cusps ---\n";
+    // Copy cusps into chart.houses.cusp[1..12]
     for (int i = 0; i < 12; i++) {
-        std::cout << "House " << (i + 1) << ": " << cusps.cusps[i].longitude << "\n";
+        int house_num = cusps.cusps[i].house;      // 1..12
+        double lon    = cusps.cusps[i].longitude;
+        if (house_num >= 1 && house_num <= 12) {
+            chart.houses.cusp[house_num] = lon;
+        }
+    }
+
+    // Copy angles into chart bodies
+    chart.bodies[AE_BODY_ASC].lon = angles.asc.longitude;
+    chart.bodies[AE_BODY_MC].lon  = angles.mc.longitude;
+    chart.bodies[AE_BODY_DSC].lon = angles.dsc.longitude;
+    chart.bodies[AE_BODY_IC].lon  = angles.ic.longitude;
+
+    // -----------------------------
+    // POINTS (Fortune, Vertex)
+    // -----------------------------
+    if (ae_compute_fortune(
+            &angles,
+            &chart.bodies[AE_BODY_SUN],
+            &chart.bodies[AE_BODY_MOON],
+            &chart.bodies[AE_BODY_FORTUNE]) != 0) {
+        std::cerr << "Fortune error\n";
+        return 1;
+    }
+
+    if (ae_copy_vertex(
+            &angles,
+            &chart.bodies[AE_BODY_VERTEX]) != 0) {
+        std::cerr << "Vertex error\n";
+        return 1;
+    }
+
+    // -----------------------------
+    // ASPECTS
+    // -----------------------------
+    if (ae_compute_aspects(&chart) != 0) {
+        std::cerr << "Aspect error\n";
+        return 1;
+    }
+
+    // -----------------------------
+    // PRINT PLANETS
+    // -----------------------------
+    std::cout << "\n=== PLANETS ===\n";
+
+    int max_body_names = static_cast<int>(sizeof(body_names) / sizeof(body_names[0]));
+    int body_limit = std::min((int)AE_BODY_COUNT, max_body_names);
+
+
+    for (int i = 0; i < body_limit; i++) {
+        std::cout << std::setw(8) << body_names[i]
+                  << "  lon=" << std::fixed << std::setprecision(6)
+                  << chart.bodies[i].lon
+                  << "  speed=" << chart.bodies[i].speed_lon
+                  << "  house=" << chart.bodies[i].house
+                  << "  retro=" << chart.bodies[i].retrograde
+                  << "\n";
+    }
+
+    // -----------------------------
+    // PRINT HOUSES
+    // -----------------------------
+    std::cout << "\n=== HOUSES ===\n";
+    for (int h = 1; h <= 12; h++) {
+        std::cout << "House " << h << ": "
+                  << chart.houses.cusp[h] << "\n";
+    }
+
+    // -----------------------------
+    // PRINT ASPECTS
+    // -----------------------------
+    std::cout << "\n=== ASPECTS ===\n";
+
+    int max_aspects = chart.aspect_count;
+    if (max_aspects < 0 || max_aspects > AE_MAX_ASPECTS) {
+        std::cerr << "Invalid aspect_count: " << chart.aspect_count << "\n";
+        max_aspects = std::max(0, std::min(chart.aspect_count, AE_MAX_ASPECTS));
+    }
+
+    int max_aspect_types = static_cast<int>(sizeof(aspect_names) / sizeof(aspect_names[0]));
+
+    for (int i = 0; i < max_aspects; i++) {
+        const AeAspect &asp = chart.aspects[i];
+
+        if (asp.a < 0 || asp.a >= body_limit ||
+            asp.b < 0 || asp.b >= body_limit) {
+            std::cerr << "Invalid aspect body index: a=" << asp.a
+                      << " b=" << asp.b << "\n";
+            continue;
+        }
+
+        if (asp.type < 0 || asp.type >= max_aspect_types) {
+            std::cerr << "Invalid aspect type: " << asp.type << "\n";
+            continue;
+        }
+
+        double lon_a = chart.bodies[asp.a].lon;
+        double lon_b = chart.bodies[asp.b].lon;
+        double exact = AE_ASPECT_ANGLE[asp.type];
+
+        double delta = asp.delta;
+
+
+        std::cout
+            << body_names[asp.a] << " "
+            << aspect_names[asp.type] << " "
+            << body_names[asp.b]
+            << "  orb=" << std::fixed << std::setprecision(4) << asp.orb
+            << "  delta=" << delta
+            << "  applying=" << (asp.applying ? "yes" : "no")
+            << "\n";
     }
 
     return 0;
