@@ -83,7 +83,7 @@ int ae_compute_core_bodies(
     int err_msg_size
 ) {
     // Ensure Swiss Ephemeris knows where the ephemeris files are
-    swe_set_ephe_path("/Users/alfredo/Documents/projects/astro-engine-cpp/external/swisseph/ephe");
+    swe_set_ephe_path("ephe");
 
     if (!chart) {
         ae_set_error(err_msg, err_msg_size, "NULL AeChartCore");
