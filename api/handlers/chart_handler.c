@@ -82,10 +82,10 @@ int main() {
     // 1. Read request JSON
     char *raw_json = read_stdin();
 
-    fprintf(stderr,
+    /*fprintf(stderr,
         "=== RAW STDIN RECEIVED BY LAMBDA ===\n%s\n=== END RAW STDIN ===\n",
         raw_json ? raw_json : "(null)"
-    );
+    );*/
 
     if (!raw_json) {
         printf("{\"ok\":false,\"error\":\"Failed to read input\"}");
@@ -95,6 +95,18 @@ int main() {
     // 2. Normalize event → extract real payload
     char *input_json = normalize_event_json(raw_json);
     free(raw_json);
+   
+    fprintf(stderr,
+        "\n\n###############################\n"
+        "# BEGIN NORMALIZED JSON BLOCK #\n"
+        "###############################\n"
+        "%s\n"
+        "#############################\n"
+        "# END NORMALIZED JSON BLOCK #\n"
+        "#############################\n\n",
+        input_json
+        );
+        
 
     // 3. Validate → AeInput
     AeInput input;
