@@ -33,16 +33,15 @@ static char* read_stdin() {
 
 // Extract the real JSON payload from raw event JSON
 static char* normalize_event_json(const char* raw) {
-    // Look for "body":
     const char *body_key = "\"body\":";
-
     const char *pos = strstr(raw, body_key);
+
     if (!pos) {
-        // No body → raw JSON is the payload
+        // No "body" → raw JSON is the payload
         return strdup(raw);
     }
 
-    // Move to the start of the body value
+    // Move to start of body value
     pos += strlen(body_key);
 
     // Skip whitespace
@@ -79,11 +78,14 @@ static char* normalize_event_json(const char* raw) {
     return strdup(raw);
 }
 
-
 int main() {
     // 1. Read request JSON
     char *raw_json = read_stdin();
-    fprintf(stderr, "=== RAW STDIN RECEIVED BY LAMBDA ===\n%s\n=== END RAW STDIN ===\n", raw_json);
+
+    fprintf(stderr,
+        "=== RAW STDIN RECEIVED BY LAMBDA ===\n%s\n=== END RAW STDIN ===\n",
+        raw_json ? raw_json : "(null)"
+    );
 
     if (!raw_json) {
         printf("{\"ok\":false,\"error\":\"Failed to read input\"}");
