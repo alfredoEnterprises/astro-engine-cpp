@@ -83,6 +83,8 @@ static char* normalize_event_json(const char* raw) {
 int main() {
     // 1. Read request JSON
     char *raw_json = read_stdin();
+    fprintf(stderr, "=== RAW STDIN RECEIVED BY LAMBDA ===\n%s\n=== END RAW STDIN ===\n", input_json);
+
     if (!raw_json) {
         printf("{\"ok\":false,\"error\":\"Failed to read input\"}");
         return 0;
