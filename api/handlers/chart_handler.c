@@ -33,52 +33,52 @@ static char* read_stdin() {
 
 // Extract the real JSON payload from raw event JSON
 static char* normalize_event_json(const char* raw) {
-    // Check if the raw JSON contains "body"
+    // Look for "body":
     const char *body_key = "\"body\":";
 
-    char *found = strstr(raw, body_key);
-    if (!found) {
-        // No "body" → raw JSON is the payload
+    const char *pos = strstr(raw, body_key);
+    if (!pos) {
+        // No body → raw JSON is the payload
         return strdup(raw);
     }
 
-    // Move pointer to after "body":
-    found += strlen(body_key);
+    // Move to the start of the body value
+    pos += strlen(body_key);
 
     // Skip whitespace
-    while (*found == ' ' || *found == '\n' || *found == '\t') found++;
+    while (*pos == ' ' || *pos == '\n' || *pos == '\t') pos++;
 
-    // Case 1: body is a STRING → starts with "
-    if (*found == '\"') {
-        found++; // skip opening quote
+    // Case 1: body is a STRING
+    if (*pos == '\"') {
+        pos++; // skip opening quote
 
-        // Extract until closing quote
-        const char *end = strchr(found, '\"');
+        // Find closing quote
+        const char *end = strchr(pos, '\"');
         if (!end) return strdup(raw);
 
-        size_t len = end - found;
+        size_t len = end - pos;
         char *inner = malloc(len + 1);
-        memcpy(inner, found, len);
+        memcpy(inner, pos, len);
         inner[len] = '\0';
         return inner;
     }
 
-    // Case 2: body is an OBJECT → starts with {
-    if (*found == '{') {
-        // Find matching closing brace
-        const char *end = strrchr(found, '}');
+    // Case 2: body is an OBJECT
+    if (*pos == '{') {
+        const char *end = strrchr(pos, '}');
         if (!end) return strdup(raw);
 
-        size_t len = end - found + 1;
+        size_t len = end - pos + 1;
         char *inner = malloc(len + 1);
-        memcpy(inner, found, len);
+        memcpy(inner, pos, len);
         inner[len] = '\0';
         return inner;
     }
 
-    // Fallback: return raw
+    // Fallback
     return strdup(raw);
 }
+
 
 int main() {
     // 1. Read request JSON
