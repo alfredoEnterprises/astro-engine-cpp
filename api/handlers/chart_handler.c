@@ -31,35 +31,72 @@ static char* read_stdin() {
     return buf;
 }
 
+// Unescape a JSON string literal (handles \" \\ \n \t)
+static char* json_unescape(const char* src) {
+    size_t len = strlen(src);
+    char* out = malloc(len + 1);
+    char* dst = out;
+
+    for (size_t i = 0; i < len; i++) {
+        if (src[i] == '\\' && i + 1 < len) {
+            i++;
+            switch (src[i]) {
+                case 'n':  *dst++ = '\n'; break;
+                case 't':  *dst++ = '\t'; break;
+                case 'r':  *dst++ = '\r'; break;
+                case '\\': *dst++ = '\\'; break;
+                case '"':  *dst++ = '"';  break;
+                default:   *dst++ = src[i]; break;
+            }
+        } else {
+            *dst++ = src[i];
+        }
+    }
+
+    *dst = '\0';
+    return out;
+}
+
 // Extract the real JSON payload from raw event JSON
 static char* normalize_event_json(const char* raw) {
     const char *body_key = "\"body\":";
     const char *pos = strstr(raw, body_key);
 
     if (!pos) {
-        // No "body" → raw JSON is the payload
         return strdup(raw);
     }
 
-    // Move to start of body value
     pos += strlen(body_key);
 
-    // Skip whitespace
     while (*pos == ' ' || *pos == '\n' || *pos == '\t') pos++;
 
-    // Case 1: body is a STRING
+    // Case 1: body is a STRING → extract full quoted string literal
     if (*pos == '\"') {
         pos++; // skip opening quote
 
-        // Find closing quote
-        const char *end = strchr(pos, '\"');
-        if (!end) return strdup(raw);
+        const char* start = pos;
+        int escaped = 0;
 
-        size_t len = end - pos;
-        char *inner = malloc(len + 1);
-        memcpy(inner, pos, len);
-        inner[len] = '\0';
-        return inner;
+        while (*pos) {
+            if (!escaped && *pos == '\"') {
+                break;
+            }
+            escaped = (!escaped && *pos == '\\');
+            pos++;
+        }
+
+        if (*pos != '\"') {
+            return strdup(raw);
+        }
+
+        size_t len = pos - start;
+        char* raw_inner = malloc(len + 1);
+        memcpy(raw_inner, start, len);
+        raw_inner[len] = '\0';
+
+        char* unescaped = json_unescape(raw_inner);
+        free(raw_inner);
+        return unescaped;
     }
 
     // Case 2: body is an OBJECT
@@ -74,15 +111,15 @@ static char* normalize_event_json(const char* raw) {
         return inner;
     }
 
-    // Fallback
     return strdup(raw);
 }
+
 
 int main() {
     // 1. Read request JSON
     char *raw_json = read_stdin();
 
-    /*fprintf(stderr,
+   /* fprintf(stderr,
         "=== RAW STDIN RECEIVED BY LAMBDA ===\n%s\n=== END RAW STDIN ===\n",
         raw_json ? raw_json : "(null)"
     );*/
