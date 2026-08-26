@@ -1,0 +1,69 @@
+#!/bin/sh
+set -euo pipefail
+
+log() {
+  echo "[BOOTSTRAP] $1" 1>&2
+}
+
+AWS_LAMBDA_RUNTIME_API=${AWS_LAMBDA_RUNTIME_API:-}
+
+# Escape JSON for API Gateway body (pure POSIX)
+escape_json() {
+  printf '%s' "$1" | sed \
+    -e 's/\\/\\\\/g' \
+    -e 's/"/\\"/g' \
+    -e 's/\n/\\n/g'
+}
+
+log "Starting bootstrap… Runtime API: $AWS_LAMBDA_RUNTIME_API"
+
+while true
+do
+  log "Waiting for next invocation…"
+
+  # Fetch event + headers
+  HEADERS=$(curl -sS -D - "http://${AWS_LAMBDA_RUNTIME_API}/2018-06-01/runtime/invocation/next" -o /tmp/event.json)
+
+  # Extract request ID
+  REQUEST_ID=$(printf "%s" "$HEADERS" | sed -n 's/^Lambda-Runtime-Aws-Request-Id:[[:space:]]*\(.*\)/\1/p')
+  REQUEST_ID=$(printf "%s" "$REQUEST_ID" | tr -d '\r' | tr -d '\n' | tr -d ' ')
+
+  if [ -z "$REQUEST_ID" ]; then
+    log "ERROR: Failed to extract requestId"
+    exit 1
+  fi
+
+  EVENT=$(cat /tmp/event.json)
+
+  log "Invoking chart_handler…"
+
+  # Capture ONLY stdout (JSON), stderr goes to file
+  ENGINE_OUTPUT=$(printf "%s" "$EVENT" | ./chart_handler 2> /tmp/handler_stderr)
+  ENGINE_EXIT=$?
+
+  log "HANDLER STDERR:"
+  cat /tmp/handler_stderr 1>&2
+
+  log "ENGINE_OUTPUT_BEGIN"
+  printf "%s\n" "$ENGINE_OUTPUT" 1>&2
+  log "ENGINE_OUTPUT_END"
+
+  if [ $ENGINE_EXIT -ne 0 ]; then
+    log "Engine exited with non-zero status: $ENGINE_EXIT"
+  fi
+
+  # Escape JSON for API Gateway
+  ESCAPED_BODY=$(escape_json "$ENGINE_OUTPUT")
+
+  # Build API Gateway v2 response
+  FINAL_PAYLOAD="{\"statusCode\":200,\"headers\":{\"Content-Type\":\"application/json\"},\"body\":\"$ESCAPED_BODY\"}"
+
+  log "Sending response back to Lambda…"
+
+  curl -sS -X POST \
+    "http://${AWS_LAMBDA_RUNTIME_API}/2018-06-01/runtime/invocation/${REQUEST_ID}/response" \
+    -H "Content-Type: application/json" \
+    -d "$FINAL_PAYLOAD"
+
+  log "Response delivered."
+done
