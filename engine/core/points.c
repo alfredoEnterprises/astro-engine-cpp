@@ -20,15 +20,14 @@ int ae_compute_fortune(
     double asc      = norm(angles->asc.longitude);
     double sun_deg  = norm(sun->lon);
     double moon_deg = norm(moon->lon);
-    double mc       = norm(angles->mc.longitude);
-    double ic       = norm(angles->ic.longitude);
+    double dsc      = norm(angles->dsc.longitude);
 
-    // Sun above horizon if between MC → IC (upper hemisphere)
+    // Day chart: Sun above the horizon (between DSC and ASC through MC)
     bool is_day = false;
-    if (mc < ic)
-        is_day = (sun_deg > mc && sun_deg < ic);
+    if (dsc < asc)
+        is_day = (sun_deg > dsc && sun_deg < asc);
     else
-        is_day = (sun_deg > mc || sun_deg < ic);
+        is_day = (sun_deg > dsc || sun_deg < asc);
 
     double f = is_day
         ? asc + moon_deg - sun_deg

@@ -109,6 +109,18 @@ target_link_libraries(astro_api_validation
 # ---------------------------------------------------------
 # Tests
 # ---------------------------------------------------------
+add_executable(test_engine tests/test_engine.cpp)
+
+target_include_directories(test_engine PUBLIC engine/core engine/bootstrap api/serializers external/swisseph)
+
+target_link_libraries(test_engine astro_engine_core astro_engine_bootstrap astro_api_serializers swisseph m)
+
+add_executable(test_maelena tests/test_maelena.cpp)
+
+target_include_directories(test_maelena PUBLIC engine/core engine/bootstrap api/serializers external/swisseph)
+
+target_link_libraries(test_maelena astro_engine_core astro_engine_bootstrap astro_api_serializers swisseph m)
+
 #add_executable(test_core tests/test_core.cpp)
 
 #target_include_directories(test_core PUBLIC engine/core engine/bootstrap api/serializers external/swisseph)
