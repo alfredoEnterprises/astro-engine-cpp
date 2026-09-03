@@ -33,10 +33,19 @@ cp "$PROJECT_ROOT/bootstrap/bootstrap" .
 echo "=== 6. Create Lambda ZIP ==="
 zip -r9 chart_handler.zip bootstrap chart_handler ephe
 
-echo "=== 7. Deploying ZIP to Lambda ==="
+echo "=== 7. Publishing current Lambda as rollback version ==="
+aws lambda publish-version \
+  --function-name astro-symbolic-engine4 \
+  --description "pre-sect-fix rollback"
+
+echo "=== 8. Deploying ZIP to Lambda ==="
 aws lambda update-function-code \
   --function-name astro-symbolic-engine4 \
   --zip-file fileb://chart_handler.zip
 
+echo "=== 9. Publishing new Lambda version ==="
+aws lambda publish-version \
+  --function-name astro-symbolic-engine4 \
+  --description "sect-axis-fix"
 
-echo "=== DONE: Lambda updated successfully ==="
+echo "=== DONE: Lambda updated successfully — verify before updating any alias ==="
