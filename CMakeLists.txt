@@ -68,6 +68,7 @@ target_link_libraries(astro_engine_bootstrap
 # ---------------------------------------------------------
 add_library(astro_api_serializers
     api/serializers/chart_json.c
+    api/serializers/transit_json.c
 )
 
 target_include_directories(astro_api_serializers PUBLIC
@@ -127,6 +128,12 @@ add_executable(test_transits tests/test_transits.cpp)
 target_include_directories(test_transits PUBLIC engine/core engine/bootstrap api/serializers external/swisseph)
 
 target_link_libraries(test_transits astro_engine_core astro_engine_bootstrap swisseph m)
+
+add_executable(test_transit_json tests/test_transit_json.cpp)
+
+target_include_directories(test_transit_json PUBLIC engine/core api/serializers external/swisseph)
+
+target_link_libraries(test_transit_json astro_engine_core astro_api_serializers swisseph m)
 
 #add_executable(test_core tests/test_core.cpp)
 
