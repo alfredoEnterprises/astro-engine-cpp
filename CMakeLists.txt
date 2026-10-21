@@ -135,6 +135,12 @@ target_include_directories(test_transit_json PUBLIC engine/core api/serializers 
 
 target_link_libraries(test_transit_json astro_engine_core astro_api_serializers swisseph m)
 
+add_executable(test_transit_validation tests/test_transit_validation.cpp)
+
+target_include_directories(test_transit_validation PUBLIC api/validation api/third_party/cjson engine/core external/swisseph)
+
+target_link_libraries(test_transit_validation astro_api_validation astro_engine_core swisseph m)
+
 #add_executable(test_core tests/test_core.cpp)
 
 #target_include_directories(test_core PUBLIC engine/core engine/bootstrap api/serializers external/swisseph)

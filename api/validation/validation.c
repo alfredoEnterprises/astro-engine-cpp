@@ -140,3 +140,61 @@ fail:
     cJSON_Delete(root);
     return false;
 }
+
+bool ae_request_is_transit_window(const char *json) {
+    if (!json) return false;
+    cJSON *root = cJSON_Parse(json);
+    if (!root) return false;
+    cJSON *op = cJSON_GetObjectItem(root, "operation");
+    bool is_tw = op && cJSON_IsString(op) &&
+                 strcmp(op->valuestring, "transit-window") == 0;
+    cJSON_Delete(root);
+    return is_tw;
+}
+
+bool ae_validate_transit_window_request(
+    const char *json,
+    AeTransitRequest *out,
+    char *err,
+    size_t err_size
+) {
+    if (!json || !out) { set_err(err, err_size, "Invalid arguments"); return false; }
+
+    cJSON *root = cJSON_Parse(json);
+    if (!root) { set_err(err, err_size, "Invalid JSON"); return false; }
+
+    memset(out, 0, sizeof(AeTransitRequest));
+    out->hour = 12; // default noon UT
+
+    cJSON *start = cJSON_GetObjectItem(root, "start");
+    if (!start || !cJSON_IsObject(start)) {
+        set_err(err, err_size, "Field 'start' missing or not an object");
+        cJSON_Delete(root); return false;
+    }
+
+    if (!get_int(start, "year",  &out->year,  err, err_size)) { cJSON_Delete(root); return false; }
+    if (!get_int(start, "month", &out->month, err, err_size)) { cJSON_Delete(root); return false; }
+    if (!get_int(start, "day",   &out->day,   err, err_size)) { cJSON_Delete(root); return false; }
+
+    // Optional time-of-day (defaults: hour=12, minute=0, second=0).
+    cJSON *h = cJSON_GetObjectItem(start, "hour");
+    if (h && cJSON_IsNumber(h)) out->hour = h->valueint;
+    cJSON *mi = cJSON_GetObjectItem(start, "minute");
+    if (mi && cJSON_IsNumber(mi)) out->minute = mi->valueint;
+    cJSON *se = cJSON_GetObjectItem(start, "second");
+    if (se && cJSON_IsNumber(se)) out->second = se->valueint;
+
+    if (!get_int(root, "days", &out->days, err, err_size)) { cJSON_Delete(root); return false; }
+
+    // Range checks (mirror chart_core.c domain validation + transit caps).
+    if (out->year < 1600 || out->year > 2500) { set_err(err, err_size, "Year out of range (1600-2500)"); cJSON_Delete(root); return false; }
+    if (out->month < 1 || out->month > 12)    { set_err(err, err_size, "Month out of range (1-12)");    cJSON_Delete(root); return false; }
+    if (out->day < 1 || out->day > 31)        { set_err(err, err_size, "Day out of range (1-31)");      cJSON_Delete(root); return false; }
+    if (out->hour < 0 || out->hour > 23)      { set_err(err, err_size, "Hour out of range (0-23)");     cJSON_Delete(root); return false; }
+    if (out->minute < 0 || out->minute > 59)  { set_err(err, err_size, "Minute out of range (0-59)");   cJSON_Delete(root); return false; }
+    if (out->second < 0 || out->second > 59)  { set_err(err, err_size, "Second out of range (0-59)");   cJSON_Delete(root); return false; }
+    if (out->days < 1 || out->days > AE_TRANSIT_MAX_DAYS) { set_err(err, err_size, "days out of range (1-100)"); cJSON_Delete(root); return false; }
+
+    cJSON_Delete(root);
+    return true;
+}
