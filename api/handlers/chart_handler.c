@@ -6,6 +6,7 @@
 #include "../validation/validation.h"
 #include "../../engine/core/chart_core.h"
 #include "../serializers/chart_json.h"
+#include "../serializers/transit_json.h"
 
 // Read entire STDIN into a buffer
 static char* read_stdin() {
@@ -144,6 +145,40 @@ int main() {
         input_json
         );
         
+
+    // 2b. Transit-window operation (pure astronomy, location-independent).
+    if (ae_request_is_transit_window(input_json)) {
+        AeTransitRequest treq;
+        char terr[256] = {0};
+        if (!ae_validate_transit_window_request(input_json, &treq, terr, sizeof(terr))) {
+            free(input_json);
+            printf("{\"ok\":false,\"error\":\"%s\"}", terr);
+            return 0;
+        }
+        free(input_json);
+
+        double start_jd = ae_transit_start_jd(&treq);
+
+        static AeTransitWindow win; // static: ~ large, keep off the stack
+        memset(&win, 0, sizeof(win));
+        if (ae_compute_transit_window(start_jd, treq.days, &win, terr, sizeof(terr)) != 0) {
+            printf("{\"ok\":false,\"error\":\"%s\"}", terr);
+            return 0;
+        }
+        if (ae_find_eclipses(start_jd, treq.days, &win, terr, sizeof(terr)) != 0) {
+            printf("{\"ok\":false,\"error\":\"%s\"}", terr);
+            return 0;
+        }
+
+        static char twbuf[262144];
+        int tw = ae_transit_window_to_json(&win, twbuf, sizeof(twbuf));
+        if (tw < 0) {
+            printf("{\"ok\":false,\"error\":\"Transit serialization error\"}");
+            return 0;
+        }
+        printf("{\"ok\":true,\"window\":%s}", twbuf);
+        return 0;
+    }
 
     // 3. Validate → AeInput
     AeInput input;
