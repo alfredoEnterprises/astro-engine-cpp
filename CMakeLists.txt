@@ -33,6 +33,7 @@ add_library(astro_engine_core
     engine/core/points.c
     engine/core/aspect_rules.c
     engine/core/chart_core.c
+    engine/core/transits.c
 )
 
 target_include_directories(astro_engine_core PUBLIC
@@ -120,6 +121,12 @@ add_executable(test_maelena tests/test_maelena.cpp)
 target_include_directories(test_maelena PUBLIC engine/core engine/bootstrap api/serializers external/swisseph)
 
 target_link_libraries(test_maelena astro_engine_core astro_engine_bootstrap astro_api_serializers swisseph m)
+
+add_executable(test_transits tests/test_transits.cpp)
+
+target_include_directories(test_transits PUBLIC engine/core engine/bootstrap api/serializers external/swisseph)
+
+target_link_libraries(test_transits astro_engine_core astro_engine_bootstrap swisseph m)
 
 #add_executable(test_core tests/test_core.cpp)
 
