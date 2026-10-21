@@ -46,7 +46,7 @@ int main() {
     CHECK(rc_bad == -1, "day_count 0 rejected");
 
     // Eclipse search: 100-day window from 2024-04-01 contains the
-    // 2024-04-08 total solar eclipse at ~19 deg Aries (ecliptic lon ~19).
+    // 2024-04-08 total solar eclipse at ecliptic longitude ~19 deg.
     AeTransitWindow we;
     std::memset(&we, 0, sizeof(we));
     double estart = swe_julday(2024, 4, 1, 0.0, SE_GREG_CAL);
@@ -56,16 +56,16 @@ int main() {
     CHECK(ferc == 0, "find_eclipses returns 0");
     CHECK(we.eclipse_count >= 1, "at least one eclipse found in 100 days");
 
-    int found_solar_aries = 0;
+    int found_solar_lon19 = 0;
     for (int i = 0; i < we.eclipse_count; i++) {
         AeEclipseEvent *e = &we.eclipses[i];
         int in_window = (e->jd_ut_max >= estart) && (e->jd_ut_max < estart + 100.0);
         int lon_ok2   = (e->lon >= 0.0 && e->lon < 360.0);
         if (!in_window || !lon_ok2) { std::printf("FAIL: eclipse bounds\n"); failures++; }
         if (e->kind == AE_ECLIPSE_SOLAR && e->lon > 15.0 && e->lon < 25.0)
-            found_solar_aries = 1;
+            found_solar_lon19 = 1;
     }
-    CHECK(found_solar_aries, "solar eclipse ~19 deg Aries present");
+    CHECK(found_solar_lon19, "solar eclipse at ecliptic longitude ~19 deg present");
 
     if (failures) { std::printf("\n%d CHECK(S) FAILED\n", failures); return 1; }
     std::printf("\nALL CHECKS PASSED\n");
