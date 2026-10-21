@@ -48,3 +48,63 @@ int ae_compute_transit_window(double start_jd_ut, int day_count,
     }
     return 0;
 }
+
+// Record one eclipse into the window (longitude from the Sun for solar,
+// Moon for lunar, computed at the eclipse maximum).
+static int t_record_eclipse(AeTransitWindow *out, AeEclipseKind kind,
+                            double jd_max, int type_flags,
+                            char *err, int err_size) {
+    if (out->eclipse_count >= AE_TRANSIT_MAX_ECLIPSES) return 0; // cap silently
+
+    AeBodyId ref = (kind == AE_ECLIPSE_SOLAR) ? AE_BODY_SUN : AE_BODY_MOON;
+    AeBodyState bs;
+    memset(&bs, 0, sizeof(bs));
+    if (ae_compute_body(jd_max, ref, &bs, err, err_size) != 0) return -1;
+
+    AeEclipseEvent *e = &out->eclipses[out->eclipse_count++];
+    e->kind       = kind;
+    e->jd_ut_max  = jd_max;
+    e->lon        = bs.lon;
+    e->type_flags = type_flags;
+    return 0;
+}
+
+int ae_find_eclipses(double start_jd_ut, int day_count,
+                     AeTransitWindow *out, char *err, int err_size) {
+    if (!out) { t_set_error(err, err_size, "NULL AeTransitWindow"); return -1; }
+    double end_jd = start_jd_ut + (double)day_count;
+
+    swe_set_ephe_path("ephe");
+
+    // Solar eclipses (global search, any type).
+    double t = start_jd_ut;
+    for (int guard = 0; guard < 64; guard++) {
+        double tret[10]; char serr[256] = {0};
+        int rc = swe_sol_eclipse_when_glob(t, SEFLG_SWIEPH, 0, tret, 0, serr);
+        if (rc < 0) break;
+        if (tret[0] >= end_jd) break;
+        if (tret[0] >= start_jd_ut) {
+            if (t_record_eclipse(out, AE_ECLIPSE_SOLAR, tret[0], rc, err, err_size) != 0)
+                return -1;
+        }
+        t = tret[0] + 1.0; // advance past this eclipse
+        if (out->eclipse_count >= AE_TRANSIT_MAX_ECLIPSES) break;
+    }
+
+    // Lunar eclipses (any type).
+    t = start_jd_ut;
+    for (int guard = 0; guard < 64; guard++) {
+        double tret[10]; char serr[256] = {0};
+        int rc = swe_lun_eclipse_when(t, SEFLG_SWIEPH, 0, tret, 0, serr);
+        if (rc < 0) break;
+        if (tret[0] >= end_jd) break;
+        if (tret[0] >= start_jd_ut) {
+            if (t_record_eclipse(out, AE_ECLIPSE_LUNAR, tret[0], rc, err, err_size) != 0)
+                return -1;
+        }
+        t = tret[0] + 1.0;
+        if (out->eclipse_count >= AE_TRANSIT_MAX_ECLIPSES) break;
+    }
+
+    return 0;
+}
