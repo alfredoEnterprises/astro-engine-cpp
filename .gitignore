@@ -20,3 +20,6 @@ external/
 
 # Local CMake installers (large; not part of the project)
 cmake-*.sh
+
+# Swiss Ephemeris data files (licensed data, kept out of git)
+ephe/
